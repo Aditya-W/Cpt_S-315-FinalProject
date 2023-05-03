@@ -1,112 +1,82 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# ## Step 1: Loading the Dataset
-
-# In[12]:
-
 
 import pandas as pd
+import string
+import nltk
 
 data = pd.read_csv('spam.txt', sep = '\t', header=None, names=["label", "sms"])
 data.head()
 
-
-# ## Step 2: Pre-Processing
-
-# In[3]:
-
-
-import string
-import nltk
 nltk.download('stopwords')
 nltk.download('punkt')
 
+# variable containing stop words in english. Used to filter our dataset
 stopwords = nltk.corpus.stopwords.words('english')
+# variable representing punctuation in english language. Will be used later 
 punctuation = string.punctuation
 
-print(stopwords[:5])
-print(punctuation)
 
+# this function is used for pre-processing words
+def processWords(sms):
+    # removing punctuation from the input
+    rmPunctuation = "".join([word.lower() for word in sms if word not in punctuation])
+    # tokenizing words
+    tokenizedWords = nltk.tokenize.word_tokenize(rmPunctuation)
+    # removing stop words from the input
+    rmStopWords = [word for word in tokenizedWords if word not in stopwords]
+    return rmStopWords
 
-# In[14]:
+# adding a column to our data with our processed messages
+data['processed'] = data['sms'].apply(lambda x: processWords(x))
 
-
-def pre_process(sms):
-    remove_punct = "".join([word.lower() for word in sms if word not in punctuation])
-    tokenize = nltk.tokenize.word_tokenize(remove_punct)
-    remove_stopwords = [word for word in tokenize if word not in stopwords]
-    return remove_stopwords
-
-#adding a column to our data with our processed messages
-data['processed'] = data['sms'].apply(lambda x: pre_process(x))
-
-print(data['processed'].head())
-
-
-# ## Step 3: Categorizing and Counting Tokens
-
-# In[5]:
-
-
-def categorize_words():
-    spam_words = []
-    ham_words = []
+# this function is used to categorize words
+def categorize():
+    spam = [] # spam words
+    ham = [] # ham words
     #handling messages associated with spam
     for sms in data['processed'][data['label'] == 'spam']:
         for word in sms:
-            spam_words.append(word)
+            spam.append(word)
     #handling messages associated with ham
     for sms in data['processed'][data['label'] == 'ham']:
         for word in sms:
-            ham_words.append(word)
-    return spam_words, ham_words
+            ham.append(word)
+    return spam, ham
 
-spam_words, ham_words = categorize_words()
+spam, ham = categorize()
 
-print(spam_words[:5])
-print(ham_words[:5])
-
-
-# ## Step 4: Predict Function
-
-# In[6]:
-
-
+# this function does the job of predicitng whether a message is a spam or a ham
 def predict(sms):
-    spam_counter = 0
-    ham_counter = 0
+    sCounter = 0
+    hCounter = 0
     #count the occurances of each word in the sms string
     for word in sms:
-        spam_counter += spam_words.count(word)
-        ham_counter += ham_words.count(word)
+        sCounter += spam.count(word)
+        hCounter += ham.count(word)
     print('***RESULTS***')
     #if the message is ham
-    if ham_counter > spam_counter:
-        accuracy = round((ham_counter / (ham_counter + spam_counter) * 100))
+    if hCounter > sCounter:
+        accuracy = round((hCounter / (hCounter + sCounter) * 100))
         print('messege is not spam, with {}% certainty'.format(accuracy))
     #if the message is equally spam and ham
-    elif ham_counter == spam_counter:
+    elif hCounter == sCounter:
         print('message could be spam')
     #if the message is spam
     else:
-        accuracy = round((spam_counter / (ham_counter + spam_counter)* 100))
+        accuracy = round((sCounter / (hCounter + sCounter)* 100))
         print('message is spam, with {}% certainty'.format(accuracy))
 
 
-# ## Step 5: Collecting User Input & Results
-
-# In[11]:
 
 
-user_input = input("Please type a spam or ham message to check if our function predicts accurately\n")
+userInput = input("Please input a spam or a ham message to check this function\n")
 #pre-processing the input before prediction
-processed_input = pre_process(user_input)
+processed_input = processWords(userInput)
 
+# outputting final prediction
 predict(processed_input)
 
 
-# In[ ]:
+
 
 
 
